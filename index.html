@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <title>Music Visualizer Theater</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="app">
+    <!-- ★ 起動スプラッシュ -->
+    <div id="splash" class="splash">
+      <div class="splash-inner">
+        <div class="splash-logo">MV</div>
+        <div class="splash-title">Music Visualizer Theater</div>
+        <p class="splash-sub">音と光のステージへようこそ</p>
+        <button id="splashStartBtn" class="splash-button">
+          Enter
+        </button>
+      </div>
+    </div>
+    <!-- ★ スプラッシュここまで -->
+
+    <header class="app-header">
+      <div class="app-title">Music Visualizer Theater</div>
+      <div class="header-right">
+        <label class="theme-label">
+          Theme
+          <select id="themeSelect">
+            <option value="dark">Dark</option>
+            <option value="neon">Neon</option>
+          </select>
+        </label>
+      </div>
+    </header>
+
+    <section class="controls">
+      <div class="control-group">
+        <label class="file-label">
+          音楽 / 動画ファイル
+          <input type="file" id="fileInput" accept="audio/*,video/*">
+        </label>
+        <button id="playPauseBtn" class="icon-button" disabled>▶</button>
+      </div>
+
+      <div class="control-group timeline-group">
+        <span id="currentTime" class="time-label">00:00</span>
+        <input type="range" id="seekBar" min="0" max="100" value="0">
+        <span id="duration" class="time-label">00:00</span>
+      </div>
+
+      <div class="control-group">
+        <label class="slider-label">
+          音量
+          <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="0.8">
+        </label>
+      </div>
+
+      <div class="control-group">
+        <label class="slider-label">
+          感度
+          <input type="range" id="sensitivitySlider" min="0.5" max="2" step="0.05" value="1">
+        </label>
+      </div>
+
+      <div class="control-group">
+        <label class="slider-label">
+          Detail
+          <input type="range" id="barCountSlider" min="16" max="128" step="8" value="64">
+        </label>
+      </div>
+
+      <div class="control-group">
+        <label class="mode-label">
+          Mode
+          <select id="modeSelect">
+            <option value="bars">Bars</option>
+            <option value="circle">Circle</option>
+            <option value="wave">Wave</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="control-group">
+        <button id="ambientBtn" class="icon-button" title="Ambient mode">🌌</button>
+      </div>
+
+      <div class="control-group">
+        <button id="fullscreenBtn" class="icon-button" title="Fullscreen">⛶</button>
+      </div>
+    </section>
+
+    <section class="visualizer-container" id="visualizerContainer">
+      <!-- ★ 背景用のぼかし動画 -->
+      <video id="bgVideo" class="bg-video" playsinline muted></video>
+      <canvas id="visualizer"></canvas>
+    </section>
+
+    <footer class="app-footer">
+      <span id="statusText" class="status-text">音楽 / 動画ファイルを選択してください</span>
+      <span id="fpsText" class="fps-text"></span>
+    </footer>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/audioEngine.js"></script>
+  <script src="js/visualizer.js"></script>
+  <script src="js/uiControls.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
