@@ -3,6 +3,9 @@ const Visualizer = (function () {
   let ctx = null;
   let config = null;
 
+  // コンテナ（外枠グロー用）
+  let containerEl = null;
+
   let animationId = null;
   let freqArray = null;
   let timeArray = null;
@@ -31,6 +34,9 @@ const Visualizer = (function () {
     canvas = canvasElement;
     ctx = canvas.getContext("2d");
     config = configObject;
+
+    // 親要素（.visualizer-container）を覚えておく
+    containerEl = canvasElement.parentElement || null;
 
     resizeCanvas();
     window.addEventListener("resize", resizeCanvas);
@@ -107,6 +113,9 @@ const Visualizer = (function () {
 
     if (!analyser) {
       drawBackground(width, height, 0, theme, beatState);
+      if (containerEl) {
+        containerEl.style.boxShadow = "none";
+      }
       return;
     }
 
@@ -125,7 +134,6 @@ const Visualizer = (function () {
       beatState.lastBeatTime = 0;
     }
 
-    // 周波数データからビート検出用バンドを算出
     analyser.getByteFrequencyData(freqArray);
     const bands = computeBands(freqArray);
     updateBeat(bands);
@@ -133,20 +141,35 @@ const Visualizer = (function () {
     const mode = (config && config.mode) || "bars";
     const sensitivity = (config && config.sensitivity) || 1.0;
 
+    // === 外枠グロー（ビートに応じて box-shadow 強化） ===
+    if (containerEl) {
+      const bf = beatState.flash || 0;
+      const energy = beatState.energy || 0;
+      const baseBlur = Math.min(width, height) * 0.008; // 基本のぼかし量
+      const blur = baseBlur + (Math.min(width, height) * 0.06) * (bf + energy * 0.7);
+      const alpha = 0.15 + bf * 0.6 + energy * 0.3;
+
+      const isNeon = theme === "neon";
+      const color = isNeon
+        ? "0, 229, 255"   // ネオン寄りシアン
+        : "96, 165, 250"; // 青系
+
+      containerEl.style.boxShadow = `0 0 ${blur}px rgba(${color}, ${Math.min(
+        alpha,
+        0.9
+      )})`;
+    }
+
     let level = 0;
 
-    // === ビートに応じたカメラシェイク ===
+    // === カメラシェイク（軽め） ===
     ctx.save();
     const beatFlash = beatState.flash || 0;
     const beatEnergy = beatState.energy || 0;
-    const baseShake = Math.min(width, height) * 0.005; // キャンバスの約0.5%
+    const baseShake = Math.min(width, height) * 0.005;
     const shakeAmount = baseShake * (beatFlash * 0.8 + beatEnergy * 0.4);
-    const shakeX =
-      (Math.random() - 0.5) * shakeAmount * 2; // -shake〜+shake
-    const shakeY =
-      (Math.random() - 0.5) * shakeAmount * 2;
-
-    // やりすぎ防止
+    const shakeX = (Math.random() - 0.5) * shakeAmount * 2;
+    const shakeY = (Math.random() - 0.5) * shakeAmount * 2;
     const maxShake = Math.min(width, height) * 0.02;
     const clampedX = Math.max(-maxShake, Math.min(maxShake, shakeX));
     const clampedY = Math.max(-maxShake, Math.min(maxShake, shakeY));

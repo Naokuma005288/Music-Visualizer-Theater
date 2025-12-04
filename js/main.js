@@ -20,7 +20,6 @@ document.addEventListener("DOMContentLoaded", () => {
   function hideSplash() {
     if (splash && !splash.classList.contains("hide")) {
       splash.classList.add("hide");
-      // スプラッシュが消えるタイミングでシェルをフェードイン
       activateAppShell();
     }
   }
@@ -37,7 +36,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // 念のため、スプラッシュが存在しない場合でもシェルを有効化
   if (!splash) {
     activateAppShell();
   }

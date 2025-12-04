@@ -39,13 +39,16 @@ body {
   transition: background 0.45s ease, color 0.3s ease;
 }
 
-/* アプリ全体を“画面いっぱい”に */
+/* App コンテナ：画面高さにきっちりフィットさせる */
 .app {
+  height: 100vh;
+  height: 100dvh;   /* 新しい viewport 単位（対応ブラウザで優先） */
   min-height: 100vh;
-  /* 新しい viewport 単位。対応ブラウザではこちらが効く */
   min-height: 100svh;
+
   display: flex;
   flex-direction: column;
+
   background: radial-gradient(circle at top, rgba(56, 189, 248, 0.08), transparent),
               radial-gradient(circle at bottom, rgba(96, 165, 250, 0.08), transparent);
   transition: background 0.6s ease;
@@ -93,17 +96,52 @@ body {
 
 .splash-inner {
   position: relative;
-  padding: 26px 32px;
+  padding: 26px 32px 22px;
   border-radius: 24px;
-  background: linear-gradient(
-      135deg,
-      rgba(15, 23, 42, 0.95),
-      rgba(15, 23, 42, 0.88)
-    );
+  background: radial-gradient(circle at top left, rgba(59, 130, 246, 0.16), transparent),
+              linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(15, 23, 42, 0.9));
   border: 1px solid rgba(148, 163, 184, 0.4);
   box-shadow: 0 24px 60px rgba(15, 23, 42, 0.9);
   text-align: center;
   z-index: 1;
+  overflow: hidden;
+}
+
+/* グラデ境界が回る豪華枠 */
+
+.splash-inner::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  background: conic-gradient(
+    from 120deg,
+    rgba(56, 189, 248, 0.8),
+    rgba(56, 189, 248, 0.1),
+    rgba(129, 140, 248, 0.7),
+    rgba(56, 189, 248, 0.1),
+    rgba(45, 212, 191, 0.7),
+    rgba(56, 189, 248, 0.8)
+  );
+  opacity: 0.75;
+  mask: radial-gradient(farthest-side, transparent 0, transparent 70%, black 72%);
+  -webkit-mask: radial-gradient(farthest-side, transparent 0, transparent 70%, black 72%);
+  animation: splashBorder 6s linear infinite;
+  pointer-events: none;
+}
+
+/* ロゴ周りのオービット */
+
+.splash-orbit {
+  position: absolute;
+  inset: -40px;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 15% 0%, rgba(56, 189, 248, 0.25), transparent 55%),
+    radial-gradient(circle at 80% 85%, rgba(244, 63, 94, 0.22), transparent 50%);
+  opacity: 0.7;
+  filter: blur(10px);
+  pointer-events: none;
 }
 
 .splash-logo {
@@ -121,6 +159,17 @@ body {
   font-size: 1.1rem;
   box-shadow: 0 0 25px rgba(56, 189, 248, 0.7);
   animation: pulseGlow 2.1s ease-in-out infinite;
+  position: relative;
+  z-index: 1;
+}
+
+.splash-logo::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: inherit;
+  border: 1px dashed rgba(148, 163, 184, 0.6);
+  opacity: 0.8;
 }
 
 .splash-title {
@@ -128,12 +177,30 @@ body {
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  margin-bottom: 4px;
+  margin: 4px 0 4px;
 }
 
 .splash-sub {
-  margin: 0 0 14px;
+  margin: 0 0 10px;
   font-size: 0.85rem;
+  color: var(--muted-color);
+  line-height: 1.5;
+}
+
+.splash-tags {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.splash-tags span {
+  font-size: 0.7rem;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.5);
+  background: rgba(15, 23, 42, 0.9);
   color: var(--muted-color);
 }
 
@@ -173,6 +240,15 @@ body {
   100% {
     box-shadow: 0 0 18px rgba(56, 189, 248, 0.5);
     transform: scale(1);
+  }
+}
+
+@keyframes splashBorder {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
   }
 }
 
@@ -297,6 +373,31 @@ button:disabled {
   padding: 0;
 }
 
+/* 小さめアイコンボタン（プレイリスト閉じるボタン） */
+
+.icon-button.small {
+  width: 24px;
+  height: 24px;
+  font-size: 0.7rem;
+}
+
+/* ミニボタン（A/B/A-B） */
+
+.mini-btn {
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid var(--border-color);
+  color: var(--text-color);
+}
+
+.mini-btn.active {
+  border-color: var(--accent-color);
+  background: rgba(56, 189, 248, 0.18);
+  box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.35);
+}
+
 /* Sliders */
 
 input[type="range"] {
@@ -395,7 +496,6 @@ select {
               radial-gradient(circle at bottom, rgba(94, 234, 212, 0.08), transparent),
               #020617;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
-  /* PCでもある程度の高さを確保 */
   min-height: 320px;
 }
 
@@ -474,6 +574,79 @@ select {
   z-index: 2;
 }
 
+/* プレイリストパネル */
+
+.playlist-panel {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  width: 240px;
+  max-height: 65%;
+  padding: 8px 10px;
+  border-radius: 16px;
+  background: rgba(15, 23, 42, 0.94);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.9);
+  backdrop-filter: blur(18px);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  opacity: 0;
+  transform: translateY(8px);
+  pointer-events: none;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  z-index: 5;
+}
+
+.playlist-panel.open {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.playlist-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: var(--muted-color);
+}
+
+.playlist-title {
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 500;
+  font-size: 0.75rem;
+}
+
+.playlist-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  font-size: 0.8rem;
+}
+
+.playlist-item {
+  padding: 4px 6px;
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--muted-color);
+}
+
+.playlist-item:hover {
+  background: rgba(15, 118, 255, 0.25);
+  color: var(--text-color);
+}
+
+.playlist-item.active {
+  background: rgba(56, 189, 248, 0.35);
+  color: var(--text-color);
+}
+
 /* Footer */
 
 .app-footer {
@@ -499,6 +672,12 @@ select {
 .fps-text {
   font-feature-settings: "tnum";
   font-variant-numeric: tabular-nums;
+}
+
+.footer-right {
+  display: flex;
+  gap: 8px;
+  align-items: center;
 }
 
 /* === App shell entry / Ambient state === */
@@ -575,9 +754,16 @@ select {
     font-size: 1rem;
   }
 
-  /* スマホではビジュアライザーを縦方向にしっかり確保 */
   .visualizer-container {
     min-height: 55vh;
+  }
+
+  .playlist-panel {
+    right: 8px;
+    left: 8px;
+    bottom: 10px;
+    width: auto;
+    max-height: 45vh;
   }
 }
 
@@ -606,7 +792,6 @@ select {
     font-size: 0.75rem;
   }
 
-  /* さらに縦長スマホではもっと大きく */
   .visualizer-container {
     min-height: 60vh;
   }

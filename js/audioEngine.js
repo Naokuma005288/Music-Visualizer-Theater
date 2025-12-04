@@ -2,206 +2,301 @@ const AudioEngine = (function () {
   let audioCtx = null;
   let analyser = null;
   let gainNode = null;
+  let sourceNode = null;
 
-  let audioElement = null;        // 音楽専用
-  let videoElement = null;        // 背景動画
-  let audioSourceNode = null;     // audioElement 用
-  let videoSourceNode = null;     // videoElement 用（再利用）
+  let mediaElement = null;
+  let videoElement = null;
+  let audioElement = null;
 
-  let currentMediaElement = null; // 今再生中のメディア
-  let currentObjectUrl = null;
+  let isPlaying = false;
+  let onEnded = null;
 
-  let isReady = false;
-  let onEndedCallback = null;
-  let currentVolume = 0.8;
-  let usingVideo = false;
+  let userVolume = 0.8;
+  let playbackRate = 1.0;
+
+  let currentObjectURL = null;
+
+  // A-B ループ
+  let loopA = null;
+  let loopB = null;
+  let abLoopEnabled = false;
+
+  const FADE_IN_SEC = 0.5;
+  const FADE_OUT_SEC = 0.3;
+
+  // HTMLMediaElement ごとに MediaElementSourceNode を 1 回だけ作って再利用する
+  const mediaSourceMap = new WeakMap();
+
+  function ensureContext() {
+    if (!audioCtx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      audioCtx = new AC();
+      analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 2048;
+      gainNode = audioCtx.createGain();
+      gainNode.gain.value = userVolume;
+
+      // gain -> destination & analyser
+      gainNode.connect(audioCtx.destination);
+      gainNode.connect(analyser);
+    }
+  }
+
+  function ensureAudioElement() {
+    if (!audioElement) {
+      audioElement = document.createElement("audio");
+      audioElement.style.display = "none";
+      document.body.appendChild(audioElement);
+    }
+    return audioElement;
+  }
+
+  // ★ ここがエラー原因の修正ポイント
+  function connectMediaElement(el) {
+    if (!el) return;
+    ensureContext();
+
+    // この要素用の SourceNode がすでにあれば再利用
+    let node = mediaSourceMap.get(el);
+    if (!node) {
+      node = audioCtx.createMediaElementSource(el); // ★ 1要素につき1回だけ
+      mediaSourceMap.set(el, node);
+    }
+
+    // 別の要素用 node が前に使われていたら切り離す
+    if (sourceNode && sourceNode !== node) {
+      try {
+        sourceNode.disconnect();
+      } catch (e) {
+        console.warn(e);
+      }
+    }
+
+    sourceNode = node;
+
+    // いったん全接続を外してから、gainNode にだけ接続
+    try {
+      sourceNode.disconnect();
+    } catch (e) {
+      // 既に外れている場合などのエラーは無視
+    }
+    sourceNode.connect(gainNode);
+  }
 
   function setVideoElement(el) {
     videoElement = el;
   }
 
-  function initContextIfNeeded() {
-    if (!audioCtx) {
-      const AC = window.AudioContext || window.webkitAudioContext;
-      audioCtx = new AC();
-    }
+  function resetABLoop() {
+    loopA = null;
+    loopB = null;
+    abLoopEnabled = false;
   }
 
-  function cleanup() {
-    // audio用メディアを停止＆解放
-    if (audioElement) {
-      audioElement.pause();
-      audioElement.removeAttribute("src");
-      audioElement.load();
-      audioElement = null;
-    }
-
-    // video（背景）の停止＆クラス解除
-    if (videoElement) {
-      videoElement.pause();
-      videoElement.removeAttribute("src");
-      videoElement.load();
-      videoElement.classList.remove("active");
-    }
-
-    // ソースノードの切断
-    if (audioSourceNode) {
-      audioSourceNode.disconnect();
-      audioSourceNode = null;
-    }
-    if (videoSourceNode) {
-      videoSourceNode.disconnect();
-    }
-
-    // Gain / Analyser 切断
-    if (gainNode) {
-      gainNode.disconnect();
-      gainNode = null;
-    }
-    if (analyser) {
-      analyser.disconnect();
-      analyser = null;
-    }
-
-    // Blob URL解放
-    if (currentObjectUrl) {
-      URL.revokeObjectURL(currentObjectUrl);
-      currentObjectUrl = null;
-    }
-
-    currentMediaElement = null;
-    isReady = false;
-    usingVideo = false;
-  }
-
-  function setupAudioGraphFor(element, isVideo) {
-    initContextIfNeeded();
-
-    analyser = audioCtx.createAnalyser();
-    analyser.fftSize = 2048;
-    analyser.smoothingTimeConstant = 0.8;
-
-    gainNode = audioCtx.createGain();
-    gainNode.gain.value = currentVolume;
-
-    if (isVideo) {
-      if (!videoSourceNode) {
-        videoSourceNode = audioCtx.createMediaElementSource(element);
-      }
-      videoSourceNode.disconnect();
-      videoSourceNode.connect(gainNode);
-    } else {
-      audioSourceNode = audioCtx.createMediaElementSource(element);
-      audioSourceNode.connect(gainNode);
-    }
-
-    gainNode.connect(analyser);
-    analyser.connect(audioCtx.destination);
-  }
-
-  function loadFile(file, onReady) {
+  function loadFile(file, callback) {
     if (!file) return;
 
-    cleanup();
-
     const type = (file.type || "").toLowerCase();
+    const name = file.name || "";
     const isVideo =
-      type.startsWith("video/") || /\.mp4$/i.test(file.name);
-    usingVideo = isVideo;
+      type.startsWith("video/") || /\.(mp4|webm|mkv)$/i.test(name);
 
-    initContextIfNeeded();
+    // 既存の ObjectURL を解放
+    if (currentObjectURL) {
+      try {
+        URL.revokeObjectURL(currentObjectURL);
+      } catch (e) {
+        console.warn(e);
+      }
+      currentObjectURL = null;
+    }
+    const url = URL.createObjectURL(file);
+    currentObjectURL = url;
 
+    ensureContext();
+
+    let el;
     if (isVideo && videoElement) {
-      currentMediaElement = videoElement;
-      currentMediaElement.crossOrigin = "anonymous";
-      currentMediaElement.loop = true;
-      currentMediaElement.muted = false; // 音出す
-      videoElement.classList.add("active");
+      el = videoElement;
+      el.classList.add("active");
+      el.muted = false;
     } else {
-      audioElement = new Audio();
-      audioElement.crossOrigin = "anonymous";
-      audioElement.preload = "auto";
-      currentMediaElement = audioElement;
+      el = ensureAudioElement();
       if (videoElement) {
+        videoElement.pause();
+        videoElement.removeAttribute("src");
+        videoElement.load();
         videoElement.classList.remove("active");
       }
     }
 
-    currentObjectUrl = URL.createObjectURL(file);
-    currentMediaElement.src = currentObjectUrl;
+    mediaElement = el;
+    resetABLoop();
+    isPlaying = false;
 
-    setupAudioGraphFor(currentMediaElement, isVideo);
+    el.pause();
+    el.src = url;
+    el.loop = false;
+    el.playbackRate = playbackRate;
+    el.currentTime = 0;
 
-    currentMediaElement.oncanplay = () => {
-      isReady = true;
-      if (typeof onReady === "function") {
-        onReady();
-      }
+    // ★ 再生ごとに node を作り直さず、再利用
+    connectMediaElement(el);
+
+    el.onended = () => {
+      isPlaying = false;
+      if (onEnded) onEnded();
     };
 
-    currentMediaElement.onended = () => {
-      if (typeof onEndedCallback === "function") {
-        onEndedCallback();
-      }
+    const onLoadedMetadata = () => {
+      el.removeEventListener("loadedmetadata", onLoadedMetadata);
+      if (typeof callback === "function") callback();
     };
+
+    el.addEventListener("loadedmetadata", onLoadedMetadata);
+    el.load();
   }
 
   function play() {
-    if (!currentMediaElement || !isReady) return;
-    if (audioCtx && audioCtx.state === "suspended") {
-      audioCtx.resume();
-    }
-    currentMediaElement
-      .play()
-      .catch((err) => console.warn("Play error:", err));
+    if (!mediaElement) return;
+    ensureContext();
+
+    // 念のため、再生前にも現在の mediaElement を接続
+    connectMediaElement(mediaElement);
+
+    const resumePromise =
+      audioCtx.state === "suspended" ? audioCtx.resume() : Promise.resolve();
+
+    resumePromise
+      .then(() => {
+        const now = audioCtx.currentTime;
+        gainNode.gain.cancelScheduledValues(now);
+        const startValue = Math.max(0.0001, gainNode.gain.value);
+        gainNode.gain.setValueAtTime(startValue, now);
+        gainNode.gain.linearRampToValueAtTime(userVolume, now + FADE_IN_SEC);
+
+        mediaElement.playbackRate = playbackRate;
+        mediaElement.play().catch((e) => console.error(e));
+        isPlaying = true;
+      })
+      .catch((e) => console.error(e));
   }
 
   function pause() {
-    if (!currentMediaElement) return;
-    currentMediaElement.pause();
+    if (!mediaElement) {
+      isPlaying = false;
+      return;
+    }
+    if (!audioCtx) {
+      mediaElement.pause();
+      isPlaying = false;
+      return;
+    }
+
+    const now = audioCtx.currentTime;
+    const curValue = gainNode.gain.value;
+    gainNode.gain.cancelScheduledValues(now);
+    gainNode.gain.setValueAtTime(curValue, now);
+    gainNode.gain.linearRampToValueAtTime(0.0001, now + FADE_OUT_SEC);
+
+    setTimeout(() => {
+      mediaElement.pause();
+      isPlaying = false;
+    }, (FADE_OUT_SEC * 1000) | 0);
   }
 
   function togglePlay() {
-    if (!currentMediaElement || !isReady) return;
-    if (currentMediaElement.paused) {
-      play();
-    } else {
-      pause();
-    }
+    if (isPlaying) pause();
+    else play();
   }
 
-  function setVolume(v) {
-    currentVolume = v;
-    if (gainNode) {
-      gainNode.gain.value = v;
-    }
-  }
-
-  function seekTo(ratio) {
-    if (!currentMediaElement || !isReady) return;
-    const duration = currentMediaElement.duration;
-    if (!isFinite(duration) || duration <= 0) return;
-    const time = duration * Math.min(Math.max(ratio, 0), 1);
-    currentMediaElement.currentTime = time;
+  function isPlayingNow() {
+    if (!mediaElement) return false;
+    return isPlaying && !mediaElement.paused && !mediaElement.ended;
   }
 
   function getCurrentTime() {
-    if (!currentMediaElement || !isReady) return 0;
-    return currentMediaElement.currentTime || 0;
+    if (!mediaElement) return 0;
+    let t = mediaElement.currentTime || 0;
+
+    if (
+      abLoopEnabled &&
+      loopA != null &&
+      loopB != null &&
+      loopB > loopA &&
+      !mediaElement.paused
+    ) {
+      if (t > loopB) {
+        const newT = loopA + 0.02;
+        mediaElement.currentTime = newT;
+        t = newT;
+      }
+    }
+
+    return t;
   }
 
   function getDuration() {
-    if (!currentMediaElement || !isReady) return 0;
-    const d = currentMediaElement.duration;
+    if (!mediaElement) return 0;
+    const d = mediaElement.duration;
     return isFinite(d) ? d : 0;
   }
 
-  function isPlaying() {
-    return !!(
-      currentMediaElement &&
-      !currentMediaElement.paused &&
-      !currentMediaElement.ended
-    );
+  function seekTo(ratio) {
+    if (!mediaElement) return;
+    const duration = getDuration();
+    if (!duration) return;
+
+    ratio = Math.max(0, Math.min(1, ratio));
+    let t = duration * ratio;
+
+    if (
+      abLoopEnabled &&
+      loopA != null &&
+      loopB != null &&
+      loopB > loopA
+    ) {
+      if (t < loopA) t = loopA;
+      if (t > loopB) t = loopB - 0.05;
+    }
+
+    mediaElement.currentTime = t;
+  }
+
+  function seekRelative(deltaSec) {
+    if (!mediaElement) return;
+    const duration = getDuration();
+    if (!duration) return;
+
+    let t = getCurrentTime() + deltaSec;
+    t = Math.max(0, Math.min(duration, t));
+
+    if (
+      abLoopEnabled &&
+      loopA != null &&
+      loopB != null &&
+      loopB > loopA
+    ) {
+      if (t < loopA) t = loopA;
+      if (t > loopB) t = loopB - 0.05;
+    }
+
+    mediaElement.currentTime = t;
+  }
+
+  function setVolume(v) {
+    userVolume = Math.max(0, Math.min(1, v));
+    if (!audioCtx || !gainNode) return;
+    const now = audioCtx.currentTime;
+    gainNode.gain.cancelScheduledValues(now);
+    gainNode.gain.linearRampToValueAtTime(userVolume, now + 0.12);
+  }
+
+  function setPlaybackRate(rate) {
+    playbackRate = rate || 1;
+    if (mediaElement) {
+      mediaElement.playbackRate = playbackRate;
+    }
   }
 
   function getAnalyser() {
@@ -209,7 +304,36 @@ const AudioEngine = (function () {
   }
 
   function setOnEnded(cb) {
-    onEndedCallback = cb;
+    onEnded = cb;
+  }
+
+  // A-B loop
+  function setLoopPoints(a, b) {
+    if (a == null && b == null) {
+      loopA = null;
+      loopB = null;
+      return;
+    }
+    if (a != null && b != null && b > a) {
+      loopA = a;
+      loopB = b;
+    } else if (a != null && (loopB == null || loopB <= a)) {
+      loopA = a;
+    } else if (b != null && (loopA == null || b <= loopA)) {
+      loopB = b;
+    }
+  }
+
+  function setABLoopEnabled(flag) {
+    abLoopEnabled = !!flag;
+  }
+
+  function getLoopState() {
+    return {
+      a: loopA,
+      b: loopB,
+      enabled: abLoopEnabled
+    };
   }
 
   return {
@@ -218,12 +342,17 @@ const AudioEngine = (function () {
     play,
     pause,
     togglePlay,
-    setVolume,
-    seekTo,
+    isPlaying: isPlayingNow,
     getCurrentTime,
     getDuration,
-    isPlaying,
+    seekTo,
+    seekRelative,
+    setVolume,
+    setPlaybackRate,
     getAnalyser,
-    setOnEnded
+    setOnEnded,
+    setLoopPoints,
+    setABLoopEnabled,
+    getLoopState
   };
 })();
