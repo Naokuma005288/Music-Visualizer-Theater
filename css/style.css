@@ -39,10 +39,11 @@ body {
   transition: background 0.45s ease, color 0.3s ease;
 }
 
-/* App コンテナ：画面高さにきっちりフィットさせる */
+/* App コンテナ：画面高さにフィット */
+
 .app {
   height: 100vh;
-  height: 100dvh;   /* 新しい viewport 単位（対応ブラウザで優先） */
+  height: 100dvh;
   min-height: 100vh;
   min-height: 100svh;
 
@@ -496,7 +497,7 @@ select {
               radial-gradient(circle at bottom, rgba(94, 234, 212, 0.08), transparent),
               #020617;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
-  min-height: 320px;
+  min-height: 320px;  /* PC向けの最低高さ（スマホでは下で上書きして0にする） */
 }
 
 /* オーロラアニメーションレイヤー */
@@ -754,8 +755,9 @@ select {
     font-size: 1rem;
   }
 
+  /* ★ スマホ／タブレットでは min-height を0にして、残り高さを全部使う */
   .visualizer-container {
-    min-height: 55vh;
+    min-height: 0;
   }
 
   .playlist-panel {
@@ -792,8 +794,9 @@ select {
     font-size: 0.75rem;
   }
 
+  /* ここでも明示的に 0 にしておく */
   .visualizer-container {
-    min-height: 60vh;
+    min-height: 0;
   }
 }
 
