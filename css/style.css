@@ -39,14 +39,10 @@ body {
   transition: background 0.45s ease, color 0.3s ease;
 }
 
-/* App コンテナ：画面高さにフィット */
-
+/* ★ ここが重要：高さ固定をやめて min-height だけにする */
 .app {
-  height: 100vh;
-  height: 100dvh;
   min-height: 100vh;
   min-height: 100svh;
-
   display: flex;
   flex-direction: column;
 
@@ -108,8 +104,6 @@ body {
   overflow: hidden;
 }
 
-/* グラデ境界が回る豪華枠 */
-
 .splash-inner::before {
   content: "";
   position: absolute;
@@ -130,8 +124,6 @@ body {
   animation: splashBorder 6s linear infinite;
   pointer-events: none;
 }
-
-/* ロゴ周りのオービット */
 
 .splash-orbit {
   position: absolute;
@@ -227,8 +219,6 @@ body {
   transform: translateY(0);
 }
 
-/* Glow アニメ */
-
 @keyframes pulseGlow {
   0% {
     box-shadow: 0 0 18px rgba(56, 189, 248, 0.5);
@@ -307,7 +297,7 @@ body {
   gap: 8px;
 }
 
-/* File input styling */
+/* File input */
 
 .file-label {
   position: relative;
@@ -374,15 +364,11 @@ button:disabled {
   padding: 0;
 }
 
-/* 小さめアイコンボタン（プレイリスト閉じるボタン） */
-
 .icon-button.small {
   width: 24px;
   height: 24px;
   font-size: 0.7rem;
 }
-
-/* ミニボタン（A/B/A-B） */
 
 .mini-btn {
   border-radius: 999px;
@@ -477,7 +463,7 @@ select {
   font-size: 0.85rem;
 }
 
-/* Timeline group */
+/* Timeline */
 
 .timeline-group {
   flex: 1 1 220px;
@@ -487,7 +473,7 @@ select {
   width: 100%;
 }
 
-/* Visualizer */
+/* Visualizer 本体 */
 
 .visualizer-container {
   flex: 1 1 auto;
@@ -497,10 +483,8 @@ select {
               radial-gradient(circle at bottom, rgba(94, 234, 212, 0.08), transparent),
               #020617;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
-  min-height: 320px;  /* PC向けの最低高さ（スマホでは下で上書きして0にする） */
+  min-height: 320px;
 }
-
-/* オーロラアニメーションレイヤー */
 
 .visualizer-container::before {
   content: "";
@@ -522,8 +506,6 @@ select {
   z-index: 1;
 }
 
-/* モード切替時の軽いフラッシュ */
-
 .visualizer-container.flash {
   animation: flashScale 0.35s ease-out;
 }
@@ -543,14 +525,14 @@ select {
   }
 }
 
-/* 背景動画（ぼかし） */
+/* 背景動画（MP4ぼかし） */
 
 .bg-video {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: cover;      /* ★もし「映像の端まで全部見せたい」なら contain に変えてOK */
   filter: blur(12px) brightness(0.35);
   transform: scale(1.06);
   transition: opacity 0.4s ease, filter 0.4s ease, transform 0.4s ease;
@@ -575,7 +557,7 @@ select {
   z-index: 2;
 }
 
-/* プレイリストパネル */
+/* プレイリスト */
 
 .playlist-panel {
   position: absolute;
@@ -681,7 +663,7 @@ select {
   align-items: center;
 }
 
-/* === App shell entry / Ambient state === */
+/* App shell アニメ */
 
 .app-header,
 .controls,
@@ -697,8 +679,6 @@ select {
   opacity: 1;
   transform: translateY(0);
 }
-
-/* Ambient ON で一度消え、ホバーで復活 */
 
 .app.ambient .app-header,
 .app.ambient .controls,
@@ -755,9 +735,9 @@ select {
     font-size: 1rem;
   }
 
-  /* ★ スマホ／タブレットでは min-height を0にして、残り高さを全部使う */
+  /* スマホでもコンテナは flex:1 だが、min-height は 260px だけに */
   .visualizer-container {
-    min-height: 0;
+    min-height: 260px;
   }
 
   .playlist-panel {
@@ -793,14 +773,9 @@ select {
   .time-label {
     font-size: 0.75rem;
   }
-
-  /* ここでも明示的に 0 にしておく */
-  .visualizer-container {
-    min-height: 0;
-  }
 }
 
-/* オーロラ用アニメーション */
+/* オーロラ用アニメ */
 
 @keyframes floatAurora {
   0% {
