@@ -2,232 +2,195 @@
 <html lang="ja">
   <head>
     <meta charset="UTF-8" />
-    <title>Aurora Visualizer v2.3</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Omni Visual Player</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="stylesheet" href="css/style.css" />
   </head>
   <body>
-    <div class="app">
-      <!-- 起動スプラッシュ -->
-      <div id="splash" class="splash">
+    <div class="app" id="app">
+      <!-- Splash -->
+      <div class="splash" id="splash">
         <div class="splash-inner">
           <div class="splash-orbit"></div>
-          <div class="splash-logo">AV</div>
-          <h1 class="splash-title">Aurora Visualizer</h1>
+          <div class="splash-logo">OV</div>
+          <p class="splash-title">Omni Visual Player</p>
           <p class="splash-sub">
-            MP3 / MP4 対応<br />
-            ビート同期ビジュアライザー & プレイリストプレイヤー
+            Audio / MP4 Reactive Visualizer (16:9 Frame)
           </p>
           <div class="splash-tags">
-            <span>Beat Reactive</span>
-            <span>Lo-fi / EDM Ready</span>
-            <span>AB Loop</span>
+            <span>Beat-like Reactive</span>
+            <span>MP3 / MP4</span>
+            <span>Mobile Ready</span>
           </div>
-          <button id="splashStartBtn" class="splash-button">
-            クリックして起動
-          </button>
+          <button class="splash-button" id="splashBtn">Start</button>
         </div>
       </div>
 
+      <!-- Header -->
       <header class="app-header">
-        <div class="app-title">Aurora Visualizer</div>
+        <div class="app-title">Omni Visual Player</div>
         <div class="header-right">
-          <div class="theme-label">
-            Theme
-            <select id="themeSelect">
-              <option value="dark">Dark</option>
-              <option value="neon">Neon</option>
-            </select>
-          </div>
+          <label class="theme-label">
+            <input type="checkbox" id="themeToggle" />
+            <span>Neon</span>
+          </label>
+          <button
+            class="icon-button"
+            id="btnAmbient"
+            title="Ambient (UI隠し)"
+          >
+            🌌
+          </button>
         </div>
       </header>
 
-      <div class="controls">
-        <!-- ファイル -->
+      <!-- Controls -->
+      <section class="controls">
         <div class="control-group">
           <label class="file-label">
             ファイルを選択
             <input
-              id="fileInput"
               type="file"
-              accept="audio/*,video/*"
+              id="fileInput"
               multiple
+              accept="audio/*,video/mp4,video/webm"
+            />
+          </label>
+
+          <button
+            class="icon-button"
+            id="btnPrev"
+            title="前のトラック"
+          >
+            ⏮
+          </button>
+          <button
+            class="icon-button"
+            id="btnPlayPause"
+            title="再生 / 一時停止"
+          >
+            ▶
+          </button>
+          <button
+            class="icon-button"
+            id="btnNext"
+            title="次のトラック"
+          >
+            ⏭
+          </button>
+
+          <button
+            class="icon-button"
+            id="btnPlaylistToggle"
+            title="プレイリスト"
+          >
+            📜
+          </button>
+        </div>
+
+        <div class="control-group timeline-group">
+          <span class="time-label" id="currentTimeLabel">00:00</span>
+          <input type="range" id="seekBar" min="0" max="1000" value="0" />
+          <span class="time-label" id="durationLabel">00:00</span>
+        </div>
+
+        <div class="control-group">
+          <label class="slider-label">
+            Vol
+            <input
+              type="range"
+              id="volumeSlider"
+              min="0"
+              max="100"
+              value="80"
+            />
+          </label>
+
+          <label class="slider-label">
+            Sens
+            <input
+              type="range"
+              id="sensitivitySlider"
+              min="50"
+              max="200"
+              value="100"
+            />
+          </label>
+
+          <label class="mode-label">
+            Mode
+            <select id="modeSelect">
+              <option value="bars">Bars</option>
+              <option value="circle">Circle</option>
+              <option value="wave">Wave</option>
+            </select>
+          </label>
+
+          <label class="slider-label">
+            Speed
+            <input
+              type="range"
+              id="rateSlider"
+              min="50"
+              max="150"
+              value="100"
             />
           </label>
         </div>
 
-        <!-- 再生 / 一時停止 -->
         <div class="control-group">
-          <button
-            id="playPauseBtn"
-            class="icon-button"
-            title="再生 / 一時停止"
-            disabled
-          >
-            ▶
-          </button>
+          <button class="mini-btn" id="btnSetA">A</button>
+          <button class="mini-btn" id="btnSetB">B</button>
+          <button class="mini-btn" id="btnToggleAB">A-B</button>
+        </div>
+      </section>
+
+      <!-- Visualizer + Playlist -->
+      <main class="visualizer-container">
+        <div class="visualizer-frame">
+          <div class="bg-video-wrapper">
+            <!-- ここに黒帯付きで動画を表示（16:9枠の中に contain） -->
+            <video
+              id="bgVideo"
+              class="bg-video"
+              muted
+              loop
+              playsinline
+            ></video>
+          </div>
+          <!-- 上からビジュアライザーを重ねる -->
+          <canvas id="visualizer"></canvas>
         </div>
 
-        <!-- タイムライン -->
-        <div class="control-group timeline-group">
-          <span id="currentTime" class="time-label">00:00</span>
-          <input id="seekBar" type="range" min="0" max="100" value="0" />
-          <span id="duration" class="time-label">00:00</span>
-        </div>
-
-        <!-- 音量 -->
-        <div class="control-group">
-          <span class="slider-label">Vol</span>
-          <input
-            id="volumeSlider"
-            type="range"
-            min="0"
-            max="1"
-            step="0.01"
-          />
-        </div>
-
-        <!-- 感度 -->
-        <div class="control-group">
-          <span class="slider-label">感度</span>
-          <input
-            id="sensitivitySlider"
-            type="range"
-            min="0.5"
-            max="2"
-            step="0.05"
-          />
-        </div>
-
-        <!-- ディテール -->
-        <div class="control-group">
-          <span class="slider-label">Detail</span>
-          <input
-            id="barCountSlider"
-            type="range"
-            min="16"
-            max="160"
-            step="4"
-          />
-        </div>
-
-        <!-- モード -->
-        <div class="control-group">
-          <span class="mode-label">Mode</span>
-          <select id="modeSelect">
-            <option value="bars">Bars</option>
-            <option value="circle">Circle</option>
-            <option value="wave">Wave</option>
-          </select>
-        </div>
-
-        <!-- 再生速度 -->
-        <div class="control-group">
-          <span class="mode-label">Speed</span>
-          <select id="playbackRateSelect">
-            <option value="0.75">0.75x</option>
-            <option value="1">1.0x</option>
-            <option value="1.25">1.25x</option>
-            <option value="1.5">1.5x</option>
-          </select>
-        </div>
-
-        <!-- ループ / シャッフル -->
-        <div class="control-group">
-          <span class="mode-label">Loop</span>
-          <select id="repeatModeSelect" title="ループモード">
-            <option value="none">▶</option>
-            <option value="one">🔂</option>
-            <option value="all">🔁</option>
-          </select>
-          <button
-            id="shuffleBtn"
-            class="icon-button"
-            title="シャッフル再生"
-          >
-            🔀
-          </button>
-        </div>
-
-        <!-- A-B ループ -->
-        <div class="control-group">
-          <span class="mode-label">A-B</span>
-          <button id="setALoopBtn" class="mini-btn" title="A点を設定">A</button>
-          <button id="setBLoopBtn" class="mini-btn" title="B点を設定">B</button>
-          <button
-            id="toggleABLoopBtn"
-            class="mini-btn"
-            title="A-Bループ ON/OFF"
-          >
-            A-B
-          </button>
-        </div>
-
-        <!-- その他 -->
-        <div class="control-group">
-          <button
-            id="playlistToggleBtn"
-            class="icon-button"
-            title="プレイリストを表示"
-          >
-            ☰
-          </button>
-          <button
-            id="ambientBtn"
-            class="icon-button"
-            title="Ambient mode"
-          >
-            🌙
-          </button>
-          <button
-            id="fullscreenBtn"
-            class="icon-button"
-            title="フルスクリーン"
-          >
-            ⛶
-          </button>
-        </div>
-      </div>
-
-      <main class="visualizer-container" id="visualizerContainer">
-        <video
-          id="bgVideo"
-          class="bg-video"
-          playsinline
-          loop
-        ></video>
-        <canvas id="visualizer"></canvas>
-
-        <!-- プレイリストパネル（オーバーレイ表示） -->
-        <div id="playlistPanel" class="playlist-panel">
+        <aside class="playlist-panel" id="playlistPanel">
           <div class="playlist-header">
-            <span class="playlist-title">Queue</span>
+            <span class="playlist-title">PLAYLIST</span>
             <button
-              id="playlistCloseBtn"
               class="icon-button small"
+              id="btnPlaylistClose"
               title="閉じる"
             >
               ✕
             </button>
           </div>
-          <ul id="playlistList" class="playlist-list"></ul>
-        </div>
+          <ul class="playlist-list" id="playlistList"></ul>
+        </aside>
       </main>
 
+      <!-- Footer -->
       <footer class="app-footer">
-        <div id="statusText" class="status-text">
-          音楽 / 動画ファイルを選択してください
+        <div class="status-text" id="statusText">
+          ファイルが読み込まれていません
         </div>
         <div class="footer-right">
-          <span id="fpsText" class="fps-text">FPS: 0</span>
+          <span class="fps-text" id="fpsText">FPS: --</span>
         </div>
       </footer>
     </div>
 
-    <script src="js/config.js"></script>
+    <!-- Scripts -->
     <script src="js/audioEngine.js"></script>
     <script src="js/visualizer.js"></script>
-    <script src="js/uiControls.js"></script>
     <script src="js/main.js"></script>
   </body>
 </html>

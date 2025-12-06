@@ -1,19 +1,19 @@
 const AudioEngine = (function () {
   let audioCtx = null;
   let analyser = null;
-  let gainNode = null;
-  let sourceNode = null;
+  let analyserConnected = false; // ★ 1回だけ destination に繋ぐ用
 
   let mediaElement = null;
-  let videoElement = null;
   let audioElement = null;
+  let videoElement = null;
 
-  let isPlaying = false;
-  let onEnded = null;
+  const mediaSourceMap = new WeakMap();
+
+  let isPlayingFlag = false;
+  let onEndedCallback = null;
 
   let userVolume = 0.8;
   let playbackRate = 1.0;
-
   let currentObjectURL = null;
 
   // A-B ループ
@@ -21,11 +21,7 @@ const AudioEngine = (function () {
   let loopB = null;
   let abLoopEnabled = false;
 
-  const FADE_IN_SEC = 0.5;
-  const FADE_OUT_SEC = 0.3;
-
-  // HTMLMediaElement ごとに MediaElementSourceNode を 1 回だけ作って再利用する
-  const mediaSourceMap = new WeakMap();
+  // --- AudioContext 初期化 / 接続 ---
 
   function ensureContext() {
     if (!audioCtx) {
@@ -33,12 +29,11 @@ const AudioEngine = (function () {
       audioCtx = new AC();
       analyser = audioCtx.createAnalyser();
       analyser.fftSize = 2048;
-      gainNode = audioCtx.createGain();
-      gainNode.gain.value = userVolume;
-
-      // gain -> destination & analyser
-      gainNode.connect(audioCtx.destination);
-      gainNode.connect(analyser);
+    }
+    // ★ ここで必ずスピーカーに繋ぐ
+    if (analyser && !analyserConnected) {
+      analyser.connect(audioCtx.destination);
+      analyserConnected = true;
     }
   }
 
@@ -48,50 +43,48 @@ const AudioEngine = (function () {
       audioElement.style.display = "none";
       document.body.appendChild(audioElement);
     }
+    audioElement.muted = false; // 念のため
     return audioElement;
-  }
-
-  // ★ ここがエラー原因の修正ポイント
-  function connectMediaElement(el) {
-    if (!el) return;
-    ensureContext();
-
-    // この要素用の SourceNode がすでにあれば再利用
-    let node = mediaSourceMap.get(el);
-    if (!node) {
-      node = audioCtx.createMediaElementSource(el); // ★ 1要素につき1回だけ
-      mediaSourceMap.set(el, node);
-    }
-
-    // 別の要素用 node が前に使われていたら切り離す
-    if (sourceNode && sourceNode !== node) {
-      try {
-        sourceNode.disconnect();
-      } catch (e) {
-        console.warn(e);
-      }
-    }
-
-    sourceNode = node;
-
-    // いったん全接続を外してから、gainNode にだけ接続
-    try {
-      sourceNode.disconnect();
-    } catch (e) {
-      // 既に外れている場合などのエラーは無視
-    }
-    sourceNode.connect(gainNode);
   }
 
   function setVideoElement(el) {
     videoElement = el;
+    if (videoElement) {
+      videoElement.muted = false;      // 音を出したいのでミュート解除
+      videoElement.playsInline = true; // iOS向け
+    }
   }
 
-  function resetABLoop() {
-    loopA = null;
-    loopB = null;
-    abLoopEnabled = false;
+  function connectMediaElement(el) {
+    if (!el) return;
+    ensureContext();
+
+    let node = mediaSourceMap.get(el);
+    if (!node) {
+      node = audioCtx.createMediaElementSource(el);
+      mediaSourceMap.set(el, node);
+      node.connect(analyser); // analyser -> destination は ensureContext() 内で1回だけ
+    }
   }
+
+  // --- A-B ループチェック ---
+
+  function attachLoopHandler(el) {
+    if (!el) return;
+    el.ontimeupdate = () => {
+      if (
+        abLoopEnabled &&
+        loopA != null &&
+        loopB != null &&
+        loopB > loopA &&
+        el.currentTime > loopB
+      ) {
+        el.currentTime = loopA + 0.05;
+      }
+    };
+  }
+
+  // --- ファイル読み込み ---
 
   function loadFile(file, callback) {
     if (!file) return;
@@ -101,15 +94,14 @@ const AudioEngine = (function () {
     const isVideo =
       type.startsWith("video/") || /\.(mp4|webm|mkv)$/i.test(name);
 
-    // 既存の ObjectURL を解放
+    // 以前の ObjectURL を解放
     if (currentObjectURL) {
       try {
         URL.revokeObjectURL(currentObjectURL);
-      } catch (e) {
-        console.warn(e);
-      }
+      } catch (_) {}
       currentObjectURL = null;
     }
+
     const url = URL.createObjectURL(file);
     currentObjectURL = url;
 
@@ -117,10 +109,11 @@ const AudioEngine = (function () {
 
     let el;
     if (isVideo && videoElement) {
+      // 動画として再生
       el = videoElement;
       el.classList.add("active");
-      el.muted = false;
     } else {
+      // 音声として再生
       el = ensureAudioElement();
       if (videoElement) {
         videoElement.pause();
@@ -131,109 +124,75 @@ const AudioEngine = (function () {
     }
 
     mediaElement = el;
-    resetABLoop();
-    isPlaying = false;
+    isPlayingFlag = false;
 
     el.pause();
     el.src = url;
     el.loop = false;
-    el.playbackRate = playbackRate;
     el.currentTime = 0;
+    el.playbackRate = playbackRate;
+    el.volume = userVolume;
+    el.muted = false; // 念のためミュート解除
 
-    // ★ 再生ごとに node を作り直さず、再利用
     connectMediaElement(el);
+    attachLoopHandler(el);
 
     el.onended = () => {
-      isPlaying = false;
-      if (onEnded) onEnded();
+      isPlayingFlag = false;
+      if (onEndedCallback) onEndedCallback();
     };
 
-    const onLoadedMetadata = () => {
-      el.removeEventListener("loadedmetadata", onLoadedMetadata);
+    const onLoaded = () => {
+      el.removeEventListener("loadedmetadata", onLoaded);
       if (typeof callback === "function") callback();
     };
 
-    el.addEventListener("loadedmetadata", onLoadedMetadata);
+    el.addEventListener("loadedmetadata", onLoaded);
     el.load();
   }
+
+  // --- 再生制御 ---
 
   function play() {
     if (!mediaElement) return;
     ensureContext();
-
-    // 念のため、再生前にも現在の mediaElement を接続
-    connectMediaElement(mediaElement);
-
-    const resumePromise =
-      audioCtx.state === "suspended" ? audioCtx.resume() : Promise.resolve();
-
-    resumePromise
+    if (audioCtx.state === "suspended") {
+      audioCtx.resume();
+    }
+    mediaElement
+      .play()
       .then(() => {
-        const now = audioCtx.currentTime;
-        gainNode.gain.cancelScheduledValues(now);
-        const startValue = Math.max(0.0001, gainNode.gain.value);
-        gainNode.gain.setValueAtTime(startValue, now);
-        gainNode.gain.linearRampToValueAtTime(userVolume, now + FADE_IN_SEC);
-
-        mediaElement.playbackRate = playbackRate;
-        mediaElement.play().catch((e) => console.error(e));
-        isPlaying = true;
+        isPlayingFlag = true;
       })
-      .catch((e) => console.error(e));
+      .catch((e) => {
+        console.error("play() error:", e);
+      });
   }
 
   function pause() {
-    if (!mediaElement) {
-      isPlaying = false;
-      return;
-    }
-    if (!audioCtx) {
-      mediaElement.pause();
-      isPlaying = false;
-      return;
-    }
-
-    const now = audioCtx.currentTime;
-    const curValue = gainNode.gain.value;
-    gainNode.gain.cancelScheduledValues(now);
-    gainNode.gain.setValueAtTime(curValue, now);
-    gainNode.gain.linearRampToValueAtTime(0.0001, now + FADE_OUT_SEC);
-
-    setTimeout(() => {
-      mediaElement.pause();
-      isPlaying = false;
-    }, (FADE_OUT_SEC * 1000) | 0);
+    if (!mediaElement) return;
+    mediaElement.pause();
+    isPlayingFlag = false;
   }
 
   function togglePlay() {
-    if (isPlaying) pause();
-    else play();
+    if (isPlaying()) {
+      pause();
+    } else {
+      play();
+    }
   }
 
-  function isPlayingNow() {
+  function isPlaying() {
     if (!mediaElement) return false;
-    return isPlaying && !mediaElement.paused && !mediaElement.ended;
+    return isPlayingFlag && !mediaElement.paused && !mediaElement.ended;
   }
+
+  // --- 時間情報 / シーク ---
 
   function getCurrentTime() {
     if (!mediaElement) return 0;
-    let t = mediaElement.currentTime || 0;
-
-    if (
-      abLoopEnabled &&
-      loopA != null &&
-      loopB != null &&
-      loopB > loopA &&
-      !mediaElement.paused
-    ) {
-      if (t > loopB) {
-        const newT = loopA + 0.02;
-        mediaElement.currentTime = newT;
-        t = newT;
-      }
-    }
-
-    return t;
+    return mediaElement.currentTime || 0;
   }
 
   function getDuration() {
@@ -244,11 +203,11 @@ const AudioEngine = (function () {
 
   function seekTo(ratio) {
     if (!mediaElement) return;
-    const duration = getDuration();
-    if (!duration) return;
+    const dur = getDuration();
+    if (!dur) return;
 
     ratio = Math.max(0, Math.min(1, ratio));
-    let t = duration * ratio;
+    let t = dur * ratio;
 
     if (
       abLoopEnabled &&
@@ -263,13 +222,13 @@ const AudioEngine = (function () {
     mediaElement.currentTime = t;
   }
 
-  function seekRelative(deltaSec) {
+  function seekRelative(delta) {
     if (!mediaElement) return;
-    const duration = getDuration();
-    if (!duration) return;
+    const dur = getDuration();
+    if (!dur) return;
 
-    let t = getCurrentTime() + deltaSec;
-    t = Math.max(0, Math.min(duration, t));
+    let t = mediaElement.currentTime + delta;
+    t = Math.max(0, Math.min(dur, t));
 
     if (
       abLoopEnabled &&
@@ -283,13 +242,14 @@ const AudioEngine = (function () {
 
     mediaElement.currentTime = t;
   }
+
+  // --- 音量 / 再生速度 ---
 
   function setVolume(v) {
     userVolume = Math.max(0, Math.min(1, v));
-    if (!audioCtx || !gainNode) return;
-    const now = audioCtx.currentTime;
-    gainNode.gain.cancelScheduledValues(now);
-    gainNode.gain.linearRampToValueAtTime(userVolume, now + 0.12);
+    if (mediaElement) {
+      mediaElement.volume = userVolume;
+    }
   }
 
   function setPlaybackRate(rate) {
@@ -299,29 +259,21 @@ const AudioEngine = (function () {
     }
   }
 
+  // --- 解析ノード / コールバック ---
+
   function getAnalyser() {
     return analyser;
   }
 
   function setOnEnded(cb) {
-    onEnded = cb;
+    onEndedCallback = cb;
   }
 
-  // A-B loop
+  // --- A-B ループ制御 ---
+
   function setLoopPoints(a, b) {
-    if (a == null && b == null) {
-      loopA = null;
-      loopB = null;
-      return;
-    }
-    if (a != null && b != null && b > a) {
-      loopA = a;
-      loopB = b;
-    } else if (a != null && (loopB == null || loopB <= a)) {
-      loopA = a;
-    } else if (b != null && (loopA == null || b <= loopA)) {
-      loopB = b;
-    }
+    if (a != null) loopA = a;
+    if (b != null) loopB = b;
   }
 
   function setABLoopEnabled(flag) {
@@ -329,12 +281,10 @@ const AudioEngine = (function () {
   }
 
   function getLoopState() {
-    return {
-      a: loopA,
-      b: loopB,
-      enabled: abLoopEnabled
-    };
+    return { a: loopA, b: loopB, enabled: abLoopEnabled };
   }
+
+  // --- 公開API ---
 
   return {
     setVideoElement,
@@ -342,7 +292,7 @@ const AudioEngine = (function () {
     play,
     pause,
     togglePlay,
-    isPlaying: isPlayingNow,
+    isPlaying,
     getCurrentTime,
     getDuration,
     seekTo,
@@ -353,6 +303,6 @@ const AudioEngine = (function () {
     setOnEnded,
     setLoopPoints,
     setABLoopEnabled,
-    getLoopState
+    getLoopState,
   };
 })();

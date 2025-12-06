@@ -39,19 +39,26 @@ body {
   transition: background 0.45s ease, color 0.3s ease;
 }
 
-/* ★ ここが重要：高さ固定をやめて min-height だけにする */
+/* アプリ全体：高さは「最低100vh」＋スクロールOKにする */
 .app {
   min-height: 100vh;
   min-height: 100svh;
   display: flex;
   flex-direction: column;
-
-  background: radial-gradient(circle at top, rgba(56, 189, 248, 0.08), transparent),
-              radial-gradient(circle at bottom, rgba(96, 165, 250, 0.08), transparent);
+  background: radial-gradient(
+      circle at top,
+      rgba(56, 189, 248, 0.08),
+      transparent
+    ),
+    radial-gradient(
+      circle at bottom,
+      rgba(96, 165, 250, 0.08),
+      transparent
+    );
   transition: background 0.6s ease;
 }
 
-/* ==== Splash Screen ==== */
+/* === Splash === */
 
 .splash {
   position: fixed;
@@ -59,7 +66,11 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: radial-gradient(circle at top, rgba(15, 23, 42, 0.96), rgba(2, 6, 23, 0.98));
+  background: radial-gradient(
+    circle at top,
+    rgba(15, 23, 42, 0.96),
+    rgba(2, 6, 23, 0.98)
+  );
   z-index: 999;
   opacity: 1;
   pointer-events: auto;
@@ -95,8 +106,12 @@ body {
   position: relative;
   padding: 26px 32px 22px;
   border-radius: 24px;
-  background: radial-gradient(circle at top left, rgba(59, 130, 246, 0.16), transparent),
-              linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(15, 23, 42, 0.9));
+  background: radial-gradient(
+      circle at top left,
+      rgba(59, 130, 246, 0.16),
+      transparent
+    ),
+    linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(15, 23, 42, 0.9));
   border: 1px solid rgba(148, 163, 184, 0.4);
   box-shadow: 0 24px 60px rgba(15, 23, 42, 0.9);
   text-align: center;
@@ -119,8 +134,18 @@ body {
     rgba(56, 189, 248, 0.8)
   );
   opacity: 0.75;
-  mask: radial-gradient(farthest-side, transparent 0, transparent 70%, black 72%);
-  -webkit-mask: radial-gradient(farthest-side, transparent 0, transparent 70%, black 72%);
+  mask: radial-gradient(
+    farthest-side,
+    transparent 0,
+    transparent 70%,
+    black 72%
+  );
+  -webkit-mask: radial-gradient(
+    farthest-side,
+    transparent 0,
+    transparent 70%,
+    black 72%
+  );
   animation: splashBorder 6s linear infinite;
   pointer-events: none;
 }
@@ -129,9 +154,16 @@ body {
   position: absolute;
   inset: -40px;
   border-radius: 999px;
-  background:
-    radial-gradient(circle at 15% 0%, rgba(56, 189, 248, 0.25), transparent 55%),
-    radial-gradient(circle at 80% 85%, rgba(244, 63, 94, 0.22), transparent 50%);
+  background: radial-gradient(
+      circle at 15% 0%,
+      rgba(56, 189, 248, 0.25),
+      transparent 55%
+    ),
+    radial-gradient(
+      circle at 80% 85%,
+      rgba(244, 63, 94, 0.22),
+      transparent 50%
+    );
   opacity: 0.7;
   filter: blur(10px);
   pointer-events: none;
@@ -203,11 +235,16 @@ body {
   font-size: 0.9rem;
   font-weight: 500;
   border: 1px solid rgba(56, 189, 248, 0.8);
-  background: radial-gradient(circle at top, rgba(56, 189, 248, 0.25), rgba(59, 130, 246, 0.4));
+  background: radial-gradient(
+    circle at top,
+    rgba(56, 189, 248, 0.25),
+    rgba(59, 130, 246, 0.4)
+  );
   color: var(--text-color);
   box-shadow: 0 0 18px rgba(56, 189, 248, 0.5);
   cursor: pointer;
-  transition: transform 0.12s ease, box-shadow 0.15s ease, background 0.15s ease;
+  transition: transform 0.12s ease, box-shadow 0.15s ease,
+    background 0.15s ease;
 }
 
 .splash-button:hover {
@@ -219,31 +256,7 @@ body {
   transform: translateY(0);
 }
 
-@keyframes pulseGlow {
-  0% {
-    box-shadow: 0 0 18px rgba(56, 189, 248, 0.5);
-    transform: scale(1);
-  }
-  50% {
-    box-shadow: 0 0 34px rgba(56, 189, 248, 0.95);
-    transform: scale(1.06);
-  }
-  100% {
-    box-shadow: 0 0 18px rgba(56, 189, 248, 0.5);
-    transform: scale(1);
-  }
-}
-
-@keyframes splashBorder {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
-}
-
-/* Header */
+/* === Header === */
 
 .app-header {
   display: flex;
@@ -277,7 +290,7 @@ body {
   gap: 6px;
 }
 
-/* Controls */
+/* === Controls === */
 
 .controls {
   display: flex;
@@ -297,7 +310,7 @@ body {
   gap: 8px;
 }
 
-/* File input */
+/* File input button */
 
 .file-label {
   position: relative;
@@ -338,7 +351,8 @@ button {
   background: rgba(15, 118, 255, 0.15);
   color: var(--text-color);
   border: 1px solid transparent;
-  transition: background 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
+  transition: background 0.15s ease, transform 0.1s ease,
+    box-shadow 0.15s ease;
 }
 
 button:hover:not(:disabled) {
@@ -436,8 +450,6 @@ input[type="range"]::-moz-range-thumb {
   box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
-/* Labels */
-
 .slider-label,
 .mode-label {
   font-size: 0.85rem;
@@ -463,7 +475,7 @@ select {
   font-size: 0.85rem;
 }
 
-/* Timeline */
+/* Timeline group */
 
 .timeline-group {
   flex: 1 1 220px;
@@ -473,91 +485,88 @@ select {
   width: 100%;
 }
 
-/* Visualizer 本体 */
+/* === Visualizer area === */
 
 .visualizer-container {
   flex: 1 1 auto;
   position: relative;
-  overflow: hidden;
-  background: radial-gradient(circle at top, rgba(56, 189, 248, 0.08), transparent),
-              radial-gradient(circle at bottom, rgba(94, 234, 212, 0.08), transparent),
-              #020617;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-  min-height: 320px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 16px 14px;
+  background: radial-gradient(
+      circle at top,
+      rgba(56, 189, 248, 0.08),
+      transparent
+    ),
+    radial-gradient(
+      circle at bottom,
+      rgba(94, 234, 212, 0.08),
+      transparent
+    ),
+    #020617;
+  transition: box-shadow 0.3s ease, transform 0.3s ease;
 }
 
-.visualizer-container::before {
-  content: "";
-  position: absolute;
-  inset: -25%;
-  background: conic-gradient(
-    from 120deg,
-    rgba(56, 189, 248, 0.2),
-    rgba(129, 140, 248, 0.3),
-    rgba(45, 212, 191, 0.2),
-    rgba(244, 63, 94, 0.18),
-    rgba(56, 189, 248, 0.2)
-  );
-  opacity: 0.35;
-  mix-blend-mode: screen;
-  filter: blur(40px);
-  animation: floatAurora 22s ease-in-out infinite alternate;
-  pointer-events: none;
+/* ドラッグ中の枠強調 */
+
+.visualizer-container.drag-over .visualizer-frame {
+  outline: 2px dashed var(--accent-color);
+  outline-offset: -4px;
+}
+
+/* 16:9固定のフレーム（ここに動画＋ビジュアライザ） */
+
+.visualizer-frame {
+  position: relative;
+  width: 100%;
+  max-width: 1200px;
+  aspect-ratio: 16 / 9; /* ★16:9固定 */
+  border-radius: 18px;
+  overflow: hidden;
+  background: #000;
+  box-shadow: 0 22px 45px rgba(15, 23, 42, 0.9);
   z-index: 1;
 }
 
-.visualizer-container.flash {
-  animation: flashScale 0.35s ease-out;
-}
+/* 黒帯付き動画を表示するためのラッパ */
 
-@keyframes flashScale {
-  0% {
-    transform: scale(1);
-    box-shadow: 0 0 0 rgba(59, 130, 246, 0);
-  }
-  40% {
-    transform: scale(1.015);
-    box-shadow: 0 0 26px rgba(59, 130, 246, 0.4);
-  }
-  100% {
-    transform: scale(1);
-    box-shadow: 0 0 0 rgba(59, 130, 246, 0);
-  }
-}
-
-/* 背景動画（MP4ぼかし） */
-
-.bg-video {
+.bg-video-wrapper {
   position: absolute;
   inset: 0;
+  background: #000; /* 黒帯部分 */
+  z-index: 0;
+}
+
+/* 動画自体：常に全部表示（黒帯付） */
+
+.bg-video {
   width: 100%;
   height: 100%;
-  object-fit: cover;      /* ★もし「映像の端まで全部見せたい」なら contain に変えてOK */
-  filter: blur(12px) brightness(0.35);
-  transform: scale(1.06);
-  transition: opacity 0.4s ease, filter 0.4s ease, transform 0.4s ease;
+  object-fit: contain; /* ★黒帯付きで全体表示 */
+  filter: blur(7px) brightness(0.55);
+  transform: translateZ(0);
   opacity: 0;
+  transition: opacity 0.4s ease, filter 0.4s ease;
   pointer-events: none;
-  z-index: 0;
 }
 
 .bg-video.active {
   opacity: 1;
-  filter: blur(8px) brightness(0.55);
-  transform: scale(1.03);
 }
 
-/* Canvas */
+/* ビジュアライザ用canvas：フレーム全面に重ねる */
 
 #visualizer {
-  position: relative;
+  position: absolute;
+  inset: 0;
+  display: block;
   width: 100%;
   height: 100%;
-  display: block;
-  z-index: 2;
+  z-index: 1;
 }
 
-/* プレイリスト */
+/* === Playlist panel === */
 
 .playlist-panel {
   position: absolute;
@@ -630,7 +639,7 @@ select {
   color: var(--text-color);
 }
 
-/* Footer */
+/* === Footer === */
 
 .app-footer {
   display: flex;
@@ -663,7 +672,7 @@ select {
   align-items: center;
 }
 
-/* App shell アニメ */
+/* === App ready / Ambient mode === */
 
 .app-header,
 .controls,
@@ -700,12 +709,7 @@ select {
   box-shadow: 0 0 14px var(--accent-soft);
 }
 
-.visualizer-container.drag-over {
-  outline: 2px dashed var(--accent-color);
-  outline-offset: -4px;
-}
-
-/* Responsive */
+/* === Responsive === */
 
 @media (max-width: 768px) {
   .controls {
@@ -718,6 +722,7 @@ select {
   .control-group {
     width: 100%;
     justify-content: space-between;
+    flex-wrap: wrap;
   }
 
   .timeline-group {
@@ -735,9 +740,8 @@ select {
     font-size: 1rem;
   }
 
-  /* スマホでもコンテナは flex:1 だが、min-height は 260px だけに */
   .visualizer-container {
-    min-height: 260px;
+    padding: 8px 8px 10px;
   }
 
   .playlist-panel {
@@ -775,7 +779,7 @@ select {
   }
 }
 
-/* オーロラ用アニメ */
+/* === Animations === */
 
 @keyframes floatAurora {
   0% {
@@ -789,6 +793,30 @@ select {
   100% {
     transform: translate3d(15%, -8%, 0) rotate(-15deg);
     opacity: 0.35;
+  }
+}
+
+@keyframes pulseGlow {
+  0% {
+    box-shadow: 0 0 18px rgba(56, 189, 248, 0.5);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 34px rgba(56, 189, 248, 0.95);
+    transform: scale(1.06);
+  }
+  100% {
+    box-shadow: 0 0 18px rgba(56, 189, 248, 0.5);
+    transform: scale(1);
+  }
+}
+
+@keyframes splashBorder {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
   }
 }
 
