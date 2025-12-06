@@ -1,7 +1,7 @@
 const AudioEngine = (function () {
   let audioCtx = null;
   let analyser = null;
-  let analyserConnected = false; // ★ 1回だけ destination に繋ぐ用
+  let analyserConnected = false;
 
   let mediaElement = null;
   let audioElement = null;
@@ -21,8 +21,6 @@ const AudioEngine = (function () {
   let loopB = null;
   let abLoopEnabled = false;
 
-  // --- AudioContext 初期化 / 接続 ---
-
   function ensureContext() {
     if (!audioCtx) {
       const AC = window.AudioContext || window.webkitAudioContext;
@@ -30,7 +28,6 @@ const AudioEngine = (function () {
       analyser = audioCtx.createAnalyser();
       analyser.fftSize = 2048;
     }
-    // ★ ここで必ずスピーカーに繋ぐ
     if (analyser && !analyserConnected) {
       analyser.connect(audioCtx.destination);
       analyserConnected = true;
@@ -43,15 +40,15 @@ const AudioEngine = (function () {
       audioElement.style.display = "none";
       document.body.appendChild(audioElement);
     }
-    audioElement.muted = false; // 念のため
+    audioElement.muted = false;
     return audioElement;
   }
 
   function setVideoElement(el) {
     videoElement = el;
     if (videoElement) {
-      videoElement.muted = false;      // 音を出したいのでミュート解除
-      videoElement.playsInline = true; // iOS向け
+      videoElement.muted = false;
+      videoElement.playsInline = true;
     }
   }
 
@@ -63,11 +60,9 @@ const AudioEngine = (function () {
     if (!node) {
       node = audioCtx.createMediaElementSource(el);
       mediaSourceMap.set(el, node);
-      node.connect(analyser); // analyser -> destination は ensureContext() 内で1回だけ
+      node.connect(analyser);
     }
   }
-
-  // --- A-B ループチェック ---
 
   function attachLoopHandler(el) {
     if (!el) return;
@@ -84,8 +79,6 @@ const AudioEngine = (function () {
     };
   }
 
-  // --- ファイル読み込み ---
-
   function loadFile(file, callback) {
     if (!file) return;
 
@@ -94,7 +87,6 @@ const AudioEngine = (function () {
     const isVideo =
       type.startsWith("video/") || /\.(mp4|webm|mkv)$/i.test(name);
 
-    // 以前の ObjectURL を解放
     if (currentObjectURL) {
       try {
         URL.revokeObjectURL(currentObjectURL);
@@ -109,11 +101,9 @@ const AudioEngine = (function () {
 
     let el;
     if (isVideo && videoElement) {
-      // 動画として再生
       el = videoElement;
       el.classList.add("active");
     } else {
-      // 音声として再生
       el = ensureAudioElement();
       if (videoElement) {
         videoElement.pause();
@@ -132,7 +122,7 @@ const AudioEngine = (function () {
     el.currentTime = 0;
     el.playbackRate = playbackRate;
     el.volume = userVolume;
-    el.muted = false; // 念のためミュート解除
+    el.muted = false;
 
     connectMediaElement(el);
     attachLoopHandler(el);
@@ -150,8 +140,6 @@ const AudioEngine = (function () {
     el.addEventListener("loadedmetadata", onLoaded);
     el.load();
   }
-
-  // --- 再生制御 ---
 
   function play() {
     if (!mediaElement) return;
@@ -187,8 +175,6 @@ const AudioEngine = (function () {
     if (!mediaElement) return false;
     return isPlayingFlag && !mediaElement.paused && !mediaElement.ended;
   }
-
-  // --- 時間情報 / シーク ---
 
   function getCurrentTime() {
     if (!mediaElement) return 0;
@@ -243,8 +229,6 @@ const AudioEngine = (function () {
     mediaElement.currentTime = t;
   }
 
-  // --- 音量 / 再生速度 ---
-
   function setVolume(v) {
     userVolume = Math.max(0, Math.min(1, v));
     if (mediaElement) {
@@ -259,8 +243,6 @@ const AudioEngine = (function () {
     }
   }
 
-  // --- 解析ノード / コールバック ---
-
   function getAnalyser() {
     return analyser;
   }
@@ -268,8 +250,6 @@ const AudioEngine = (function () {
   function setOnEnded(cb) {
     onEndedCallback = cb;
   }
-
-  // --- A-B ループ制御 ---
 
   function setLoopPoints(a, b) {
     if (a != null) loopA = a;
@@ -283,8 +263,6 @@ const AudioEngine = (function () {
   function getLoopState() {
     return { a: loopA, b: loopB, enabled: abLoopEnabled };
   }
-
-  // --- 公開API ---
 
   return {
     setVideoElement,

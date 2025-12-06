@@ -39,7 +39,7 @@ body {
   transition: background 0.45s ease, color 0.3s ease;
 }
 
-/* アプリ全体：高さは「最低100vh」＋スクロールOKにする */
+/* app */
 .app {
   min-height: 100vh;
   min-height: 100svh;
@@ -58,7 +58,7 @@ body {
   transition: background 0.6s ease;
 }
 
-/* === Splash === */
+/* ===== Splash ===== */
 
 .splash {
   position: fixed;
@@ -206,10 +206,35 @@ body {
 }
 
 .splash-sub {
-  margin: 0 0 10px;
+  margin: 0 0 8px;
   font-size: 0.85rem;
   color: var(--muted-color);
   line-height: 1.5;
+}
+
+.splash-tip {
+  margin: 4px 0 10px;
+  font-size: 0.78rem;
+  color: var(--muted-color);
+  opacity: 0.9;
+}
+
+.splash-progress {
+  position: relative;
+  width: 100%;
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.9);
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+.splash-bar {
+  position: absolute;
+  inset: 0;
+  transform-origin: left center;
+  background: linear-gradient(90deg, #22d3ee, #6366f1, #22c55e);
+  animation: splashProgress 2.8s ease-in-out infinite;
 }
 
 .splash-tags {
@@ -256,7 +281,7 @@ body {
   transform: translateY(0);
 }
 
-/* === Header === */
+/* ===== Header ===== */
 
 .app-header {
   display: flex;
@@ -268,6 +293,7 @@ body {
   backdrop-filter: blur(16px);
   position: relative;
   z-index: 10;
+  transition: box-shadow 0.25s ease, border-color 0.25s ease;
 }
 
 .app-title {
@@ -290,7 +316,7 @@ body {
   gap: 6px;
 }
 
-/* === Controls === */
+/* ===== Controls ===== */
 
 .controls {
   display: flex;
@@ -302,6 +328,7 @@ body {
   backdrop-filter: blur(18px);
   position: relative;
   z-index: 9;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
 }
 
 .control-group {
@@ -399,6 +426,23 @@ button:disabled {
   box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.35);
 }
 
+/* Preset */
+
+.preset-label {
+  font-size: 0.75rem;
+  opacity: 0.7;
+  margin: 0 4px;
+}
+
+.preset-btn {
+  min-width: 34px;
+}
+
+.preset-btn.has-preset {
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 1px var(--accent-soft);
+}
+
 /* Sliders */
 
 input[type="range"] {
@@ -485,14 +529,15 @@ select {
   width: 100%;
 }
 
-/* === Visualizer area === */
+/* ===== Visualizer area ===== */
 
 .visualizer-container {
   flex: 1 1 auto;
   position: relative;
   display: flex;
-  align-items: center;
+  align-items: stretch;
   justify-content: center;
+  gap: 10px;
   padding: 10px 16px 14px;
   background: radial-gradient(
       circle at top,
@@ -505,45 +550,51 @@ select {
       transparent
     ),
     #020617;
-  transition: box-shadow 0.3s ease, transform 0.3s ease;
+  transition: box-shadow 0.35s ease, transform 0.3s ease;
 }
 
-/* ドラッグ中の枠強調 */
+/* D&D */
 
 .visualizer-container.drag-over .visualizer-frame {
   outline: 2px dashed var(--accent-color);
   outline-offset: -4px;
 }
 
-/* 16:9固定のフレーム（ここに動画＋ビジュアライザ） */
+/* 16:9 フレーム */
 
 .visualizer-frame {
   position: relative;
-  width: 100%;
+  flex: 1 1 auto;
   max-width: 1200px;
-  aspect-ratio: 16 / 9; /* ★16:9固定 */
+  aspect-ratio: 16 / 9;
   border-radius: 18px;
   overflow: hidden;
   background: #000;
   box-shadow: 0 22px 45px rgba(15, 23, 42, 0.9);
   z-index: 1;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-/* 黒帯付き動画を表示するためのラッパ */
+/* 画面が低い時に高さを抑える（はみ出し防止） */
+@media (max-height: 700px) {
+  .visualizer-frame {
+    max-height: calc(100vh - 180px);
+  }
+}
+
+/* 動画＋黒帯 */
 
 .bg-video-wrapper {
   position: absolute;
   inset: 0;
-  background: #000; /* 黒帯部分 */
+  background: #000;
   z-index: 0;
 }
-
-/* 動画自体：常に全部表示（黒帯付） */
 
 .bg-video {
   width: 100%;
   height: 100%;
-  object-fit: contain; /* ★黒帯付きで全体表示 */
+  object-fit: contain; /* 黒帯付きで全体表示 */
   filter: blur(7px) brightness(0.55);
   transform: translateZ(0);
   opacity: 0;
@@ -555,7 +606,7 @@ select {
   opacity: 1;
 }
 
-/* ビジュアライザ用canvas：フレーム全面に重ねる */
+/* Canvas */
 
 #visualizer {
   position: absolute;
@@ -566,14 +617,13 @@ select {
   z-index: 1;
 }
 
-/* === Playlist panel === */
+/* ===== Playlist panel（右側常駐・小さめ） ===== */
 
 .playlist-panel {
-  position: absolute;
-  right: 16px;
-  bottom: 16px;
-  width: 240px;
-  max-height: 65%;
+  position: relative;
+  width: 220px;
+  max-width: 260px;
+  max-height: 100%;
   padding: 8px 10px;
   border-radius: 16px;
   background: rgba(15, 23, 42, 0.94);
@@ -583,16 +633,16 @@ select {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  opacity: 0;
-  transform: translateY(8px);
-  pointer-events: none;
-  transition: opacity 0.25s ease, transform 0.25s ease;
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
   z-index: 5;
 }
 
+/* open クラスは付いても挙動変わらないように */
 .playlist-panel.open {
   opacity: 1;
-  transform: translateY(0);
+  transform: none;
   pointer-events: auto;
 }
 
@@ -623,10 +673,13 @@ select {
   padding: 4px 6px;
   border-radius: 8px;
   cursor: pointer;
+  color: var(--muted-color);
+  display: flex;
+  align-items: center;
+  gap: 6px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  color: var(--muted-color);
 }
 
 .playlist-item:hover {
@@ -639,7 +692,17 @@ select {
   color: var(--text-color);
 }
 
-/* === Footer === */
+.playlist-icon {
+  flex: 0 0 auto;
+}
+
+.playlist-name {
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ===== Footer ===== */
 
 .app-footer {
   display: flex;
@@ -653,6 +716,7 @@ select {
   backdrop-filter: blur(16px);
   position: relative;
   z-index: 8;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
 }
 
 .status-text {
@@ -672,7 +736,7 @@ select {
   align-items: center;
 }
 
-/* === App ready / Ambient mode === */
+/* ===== App ready / Ambient / Playing ===== */
 
 .app-header,
 .controls,
@@ -709,7 +773,22 @@ select {
   box-shadow: 0 0 14px var(--accent-soft);
 }
 
-/* === Responsive === */
+.app.playing .app-header {
+  box-shadow: 0 5px 18px rgba(15, 23, 42, 0.75);
+  border-bottom-color: rgba(96, 165, 250, 0.45);
+}
+
+.app.playing .app-footer {
+  border-top-color: rgba(56, 189, 248, 0.45);
+}
+
+/* ビート時のパルス */
+
+.visualizer-frame.viz-beat {
+  animation: vizBeatPulse 0.22s ease-out;
+}
+
+/* ===== Responsive ===== */
 
 @media (max-width: 768px) {
   .controls {
@@ -742,14 +821,19 @@ select {
 
   .visualizer-container {
     padding: 8px 8px 10px;
+    flex-direction: column; /* 縦並び */
+    align-items: stretch;
+  }
+
+  .visualizer-frame {
+    margin-bottom: 8px;
   }
 
   .playlist-panel {
-    right: 8px;
-    left: 8px;
-    bottom: 10px;
-    width: auto;
-    max-height: 45vh;
+    position: relative;
+    width: 100%;
+    max-height: 180px;
+    margin: 0;
   }
 }
 
@@ -779,7 +863,7 @@ select {
   }
 }
 
-/* === Animations === */
+/* ===== Animations ===== */
 
 @keyframes floatAurora {
   0% {
@@ -820,7 +904,45 @@ select {
   }
 }
 
-/* アニメ減らしたい人向け */
+@keyframes splashProgress {
+  0% {
+    transform: translateX(-60%) scaleX(0.4);
+    opacity: 0.1;
+  }
+  20% {
+    transform: translateX(-10%) scaleX(0.9);
+    opacity: 0.8;
+  }
+  50% {
+    transform: translateX(0) scaleX(1);
+    opacity: 1;
+  }
+  80% {
+    transform: translateX(15%) scaleX(0.9);
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateX(60%) scaleX(0.4);
+    opacity: 0.2;
+  }
+}
+
+@keyframes vizBeatPulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 22px 45px rgba(15, 23, 42, 0.9);
+  }
+  50% {
+    transform: scale(1.015);
+    box-shadow: 0 28px 60px rgba(56, 189, 248, 0.9);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 22px 45px rgba(15, 23, 42, 0.9);
+  }
+}
+
+/* モーション少なめ設定 */
 
 @media (prefers-reduced-motion: reduce) {
   * {

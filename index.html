@@ -17,8 +17,14 @@
           <p class="splash-sub">
             Audio / MP4 Reactive Visualizer (16:9 Frame)
           </p>
+
+          <p class="splash-tip" id="splashTip"></p>
+          <div class="splash-progress">
+            <div class="splash-bar"></div>
+          </div>
+
           <div class="splash-tags">
-            <span>Beat-like Reactive</span>
+            <span>Beat Reactive</span>
             <span>MP3 / MP4</span>
             <span>Mobile Ready</span>
           </div>
@@ -57,11 +63,7 @@
             />
           </label>
 
-          <button
-            class="icon-button"
-            id="btnPrev"
-            title="前のトラック"
-          >
+          <button class="icon-button" id="btnPrev" title="前のトラック">
             ⏮
           </button>
           <button
@@ -71,11 +73,7 @@
           >
             ▶
           </button>
-          <button
-            class="icon-button"
-            id="btnNext"
-            title="次のトラック"
-          >
+          <button class="icon-button" id="btnNext" title="次のトラック">
             ⏭
           </button>
 
@@ -138,10 +136,42 @@
           </label>
         </div>
 
+        <!-- A-B ループ + プリセット + クロスフェード -->
         <div class="control-group">
           <button class="mini-btn" id="btnSetA">A</button>
           <button class="mini-btn" id="btnSetB">B</button>
           <button class="mini-btn" id="btnToggleAB">A-B</button>
+
+          <span class="preset-label">Preset</span>
+          <button
+            class="mini-btn preset-btn"
+            data-preset="0"
+            title="クリック: 読み込み / Shift+クリック: 保存"
+          >
+            P1
+          </button>
+          <button
+            class="mini-btn preset-btn"
+            data-preset="1"
+            title="クリック: 読み込み / Shift+クリック: 保存"
+          >
+            P2
+          </button>
+          <button
+            class="mini-btn preset-btn"
+            data-preset="2"
+            title="クリック: 読み込み / Shift+クリック: 保存"
+          >
+            P3
+          </button>
+
+          <button
+            class="mini-btn"
+            id="btnXFade"
+            title="クロスフェード ON/OFF"
+          >
+            XF
+          </button>
         </div>
       </section>
 
@@ -149,7 +179,6 @@
       <main class="visualizer-container">
         <div class="visualizer-frame">
           <div class="bg-video-wrapper">
-            <!-- ここに黒帯付きで動画を表示（16:9枠の中に contain） -->
             <video
               id="bgVideo"
               class="bg-video"
@@ -158,7 +187,6 @@
               playsinline
             ></video>
           </div>
-          <!-- 上からビジュアライザーを重ねる -->
           <canvas id="visualizer"></canvas>
         </div>
 
